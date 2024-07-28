@@ -1,0 +1,48 @@
+# Node.js bağımlılıkları
+/node_modules/
+
+# Derleme çıktıları
+/dist/
+*.asar
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.zip
+*.tar.gz
+
+# Electron Builder çıktı dosyaları
+/app/build/
+build/
+*.app
+*.app/Contents/Resources/app.asar
+*.app/Contents/Resources/app.asar.unpacked
+
+# Geçici dosyalar
+*.log
+*.pid
+*.seed
+*.gz
+
+# IDE ve editör dosyaları
+/.vscode/
+/.idea/
+/*.suo
+/*.user
+/*.userosscache
+/*.sln.docstates
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+*.iml
+
+# OS ve sistem dosyaları
+.DS_Store
+Thumbs.db
+
+# Electron'un otomatik olarak oluşturduğu dosyalar
+/.electron
+/.electron-cache
+/.electron-builder
+/.cache
