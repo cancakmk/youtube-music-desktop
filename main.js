@@ -2,10 +2,11 @@ try {
   require('electron-reloader')(module);
 } catch (_) {}
 
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, Notification } = require('electron');
 const path = require('path');
 
 let mainWindow;
+let previousSongTitle = '';
 
 function createWindow() {
   if (mainWindow) return;
@@ -34,6 +35,8 @@ function createWindow() {
     e.preventDefault();
     mainWindow.hide();
   });
+
+  monitorSongChanges();
 }
 
 function stopPlayer() {
@@ -67,6 +70,43 @@ function createMenu() {
 
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
+}
+
+function showNotification(title, body) {
+  const notification = new Notification({
+    title: title,
+    body: body,
+    silent: true, 
+    icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.icns') 
+  });
+
+  notification.show();
+}
+
+function monitorSongChanges() {
+  setInterval(() => {
+    if (mainWindow) {
+      mainWindow.webContents.executeJavaScript(`
+        (function() {
+          var titleElement = document.querySelector('.title.ytmusic-player-bar');
+          var artistElement = document.querySelector('.byline.ytmusic-player-bar a');
+          if (titleElement && artistElement) {
+            return {
+              title: titleElement.innerText,
+              artist: artistElement.innerText
+            };
+          } else {
+            return null;
+          }
+        })();
+      `).then(result => {
+        if (result && result.title !== previousSongTitle) {
+          previousSongTitle = result.title;
+          showNotification(result.title, result.artist);
+        }
+      }).catch(err => console.log(err));
+    }
+  }, 500); 
 }
 
 app.on('ready', () => {
