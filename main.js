@@ -14,7 +14,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
-    icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.icns'),
+    icon: path.join(__dirname, 'assets', isMacos() ?  'icon.icns':'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: true,
@@ -41,7 +41,6 @@ function createWindow() {
 
 function stopPlayer() {
   if (mainWindow) {
-    // Video öğesini seçip durdurur
     mainWindow.webContents.executeJavaScript(`
       var player = document.querySelector('video');
       if (player) {
@@ -77,10 +76,17 @@ function showNotification(title, body) {
     title: title,
     body: body,
     silent: true, 
-    icon: path.join(__dirname, 'assets', process.platform === 'win32' ? 'icon.ico' : 'icon.icns') 
+    icon: path.join(__dirname, 'assets', isMacos() ?  'icon.icns':'icon.ico') 
   });
 
   notification.show();
+}
+
+function isMacos(){
+  if(process.platform === 'win32'){
+    return false;
+  }
+  return true;
 }
 
 function monitorSongChanges() {
