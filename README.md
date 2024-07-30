@@ -16,7 +16,7 @@ To run this project, you need to have [Node.js](https://nodejs.org/en/) and [npm
 1. Clone the repository:
     ```bash
     git clone https://github.com/cancakmk/youtube-music-desktop.git
-    cd music-notification-app
+    cd youtube-music-desktop
     ```
 2. Install the required dependencies:
     ```bash
@@ -69,7 +69,7 @@ Bu projeyi çalıştırmak için [Node.js](https://nodejs.org/en/) ve [npm](http
 1. Bu depo ile ilgili dosyaları klonlayın:
     ```bash
     git clone https://github.com/cancakmk/youtube-music-desktop.git
-    cd music-notification-app
+    cd youtube-music-desktop
     ```
 2. Gerekli bağımlılıkları yükleyin:
     ```bash
