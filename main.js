@@ -1,133 +1,45 @@
-try {
-  require('electron-reloader')(module);
-} catch (_) {}
 
-const { app, BrowserWindow, Menu, Notification } = require('electron');
+const { app, ipcMain, nativeImage ,BrowserWindow} = require('electron');
+const axios = require('axios');
+const fs = require('fs');
 const path = require('path');
 
-let mainWindow;
-let previousSongTitle = '';
-
-function createWindow() {
-  if (mainWindow) return;
-
-  mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
-    icon: path.join(__dirname, 'assets', isMacos() ?  'icon.icns':'icon.ico'),
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: true,
-      contextIsolation: false
-    }
+async function downloadImage(url, path) {
+  const response = await axios({
+    url,
+    method: 'GET',
+    responseType: 'arraybuffer'
   });
-
-  mainWindow.loadURL('https://music.youtube.com');
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-  });
-
-  mainWindow.on('close', (e) => {
-    if (app.quitting) {
-      return;
-    }
-    e.preventDefault();
-    mainWindow.hide();
-  });
-
-  monitorSongChanges();
+  const buffer = Buffer.from(response.data, 'binary');
+  fs.writeFileSync(path, buffer);
 }
 
-function stopPlayer() {
-  if (mainWindow) {
-    mainWindow.webContents.executeJavaScript(`
-      var player = document.querySelector('video');
-      if (player) {
-        player.pause();
-      }
-    `);
-  }
-}
+const { createWindow } = require('./src/createWindow');
+const createMenu = require('./src/menu');
+const displayNotification = require('./src/notification');
 
-function createMenu() {
-  const template = [
-    {
-      label: 'Uygulama',
-      submenu: [
-        {
-          label: 'Çıkış',
-          accelerator: 'Cmd+Q',
-          click: () => {
-            stopPlayer(); 
-            app.quit(); 
-          }
-        }
-      ]
-    }
-  ];
-
-  const menu = Menu.buildFromTemplate(template);
-  Menu.setApplicationMenu(menu);
-}
-
-function showNotification(title, body) {
-  const notification = new Notification({
-    title: title,
-    body: body,
-    silent: true, 
-    icon: path.join(__dirname, 'assets', isMacos() ?  'icon.icns':'icon.ico') 
-  });
-
-  notification.show();
-}
-
-function isMacos(){
-  if(process.platform === 'win32'){
-    return false;
-  }
-  return true;
-}
-
-function monitorSongChanges() {
-  setInterval(() => {
-    if (mainWindow) {
-      mainWindow.webContents.executeJavaScript(`
-        (function() {
-          var titleElement = document.querySelector('.title.ytmusic-player-bar');
-          var artistElement = document.querySelector('.byline.ytmusic-player-bar a');
-          if (titleElement && artistElement) {
-            return {
-              title: titleElement.innerText,
-              artist: artistElement.innerText
-            };
-          } else {
-            return null;
-          }
-        })();
-      `).then(result => {
-        if (result && result.title !== previousSongTitle) {
-          previousSongTitle = result.title;
-          showNotification(result.title, result.artist);
-        }
-      }).catch(err => console.log(err));
-    }
-  }, 500); 
-}
-
-app.on('ready', () => {
-  createWindow();
-  createMenu();
-});
+app.whenReady().then(createWindow);
 
 app.on('activate', () => {
-  if (mainWindow) {
-    mainWindow.show();
-  } else {
+  if (!BrowserWindow.getAllWindows().length) {
     createWindow();
   }
 });
 
-app.on('before-quit', () => {
-  app.quitting = true;
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+ipcMain.on('song-changed', async (event, songInfo) => {
+  console.log('Bildirim gönderiliyor:', songInfo);
+  if (!songInfo.title || !songInfo.artist || !songInfo.albumArt) {
+    console.error('Eksik şarkı bilgisi:', songInfo);
+  } else {
+    const imagePath = path.join(app.getPath('temp'), 'album_art.png');
+    await downloadImage(songInfo.albumArt, imagePath);
+    const image = nativeImage.createFromPath(imagePath);
+    displayNotification(songInfo.title, `${songInfo.artist}`, image);
+  }
 });
