@@ -1,6 +1,8 @@
-const { ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
-let initialLoad = true; // İlk yükleme için durum değişkeni
+contextBridge.exposeInMainWorld('electronAPI', {
+  sendSongInfo: (songInfo) => ipcRenderer.send('song-changed', songInfo)
+});
 
 function observeMusicChanges() {
   const titleElement = document.querySelector('.content-info-wrapper');
@@ -9,29 +11,19 @@ function observeMusicChanges() {
     return;
   }
 
-  const titleObserver = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-        if (initialLoad) {
-          console.log('İlk yükleme, bildirim gönderilmiyor.');
-          initialLoad = false; // İlk yükleme durumunu güncelle
-          return;
-        }
+  const titleObserver = new MutationObserver(() => {
+    const songTitle = document.querySelector('.title.style-scope.ytmusic-player-bar')?.getAttribute('title') || 'Bilinmiyor';
+    const artistName = document.querySelector('.byline.style-scope.ytmusic-player-bar')?.getAttribute('title') || 'Bilinmiyor';
+    const albumArt = document.querySelector('#song-image img')?.src || 'Bilinmiyor';
 
-        const songTitle = document.querySelector('.title.style-scope.ytmusic-player-bar')?.getAttribute('title') || 'Bilinmiyor';
-        const artistName = document.querySelector('.byline.style-scope.ytmusic-player-bar')?.getAttribute('title') || 'Bilinmiyor';
-        const albumArt = document.querySelector('#song-image img')?.src || 'Bilinmiyor';
+    const songInfo = {
+      title: songTitle,
+      artist: artistName,
+      albumArt: albumArt
+    };
 
-        const songInfo = {
-          title: songTitle,
-          artist: artistName,
-          albumArt: albumArt
-        };
-
-        console.log('Şarkı değişti, bildirim gönderiliyor:', songInfo);
-        ipcRenderer.send('song-changed', songInfo);
-      }
-    });
+    console.log('Şarkı değişti, bildirim gönderiliyor:', songInfo);
+    window.electronAPI.sendSongInfo(songInfo);
   });
 
   const config = { childList: true, subtree: true };
@@ -40,4 +32,4 @@ function observeMusicChanges() {
 
 window.addEventListener('DOMContentLoaded', observeMusicChanges);
 
-// Bildirim fonksiyonunu kaldır, çünkü bu işlemci işleminden doğrudan Notification API'yi kullanamazsınız.
+console.log('Preload script loaded');

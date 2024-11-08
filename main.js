@@ -1,28 +1,15 @@
-
-const { app, ipcMain, nativeImage ,BrowserWindow} = require('electron');
-const axios = require('axios');
-const fs = require('fs');
+const { app, ipcMain, nativeImage ,BrowserWindow, Notification} = require('electron');
 const path = require('path');
-
-async function downloadImage(url, path) {
-  const response = await axios({
-    url,
-    method: 'GET',
-    responseType: 'arraybuffer'
-  });
-  const buffer = Buffer.from(response.data, 'binary');
-  fs.writeFileSync(path, buffer);
-}
-
-const { createWindow } = require('./src/createWindow');
-const createMenu = require('./src/menu');
+const { downloadImage, getPlatformIcon } = require('./src/utils');
+const { createMainWindow } = require('./src/window');
 const displayNotification = require('./src/notification');
+const { handleSongChange } = require('./src/song');
 
-app.whenReady().then(createWindow);
+app.whenReady().then(createMainWindow);
 
 app.on('activate', () => {
   if (!BrowserWindow.getAllWindows().length) {
-    createWindow();
+    createMainWindow();
   }
 });
 
@@ -32,14 +19,14 @@ app.on('window-all-closed', () => {
   }
 });
 
-ipcMain.on('song-changed', async (event, songInfo) => {
-  console.log('Bildirim gönderiliyor:', songInfo);
-  if (!songInfo.title || !songInfo.artist || !songInfo.albumArt) {
-    console.error('Eksik şarkı bilgisi:', songInfo);
-  } else {
-    const imagePath = path.join(app.getPath('temp'), 'album_art.png');
-    await downloadImage(songInfo.albumArt, imagePath);
-    const image = nativeImage.createFromPath(imagePath);
-    displayNotification(songInfo.title, `${songInfo.artist}`, image);
-  }
+ipcMain.on('song-changed', (event, songInfo) => {
+  console.log('Şarkı değişti:', songInfo);
+
+  const notification = new Notification({
+    title: `Şu An Çalıyor: ${songInfo.title}`,
+    body: `Sanatçı: ${songInfo.artist}`,
+    icon: songInfo.albumArt
+  });
+
+  notification.show();
 });

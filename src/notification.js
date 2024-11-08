@@ -1,6 +1,4 @@
-const { app, Notification } = require('electron');
-const path = require('path');
-const getPlatformIcon = require('./utils').getPlatformIcon;
+const { Notification } = require('electron');
 
 function displayNotification(title, content, icon) {
   let notification = new Notification({
